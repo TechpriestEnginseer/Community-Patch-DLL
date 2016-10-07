@@ -183,11 +183,11 @@ public:
 	bool CanLiberatePlayer(PlayerTypes ePlayer);
 	bool CanLiberatePlayerCity(PlayerTypes ePlayer);
 #if defined(MOD_BALANCE_CORE)
-	CvUnit* initUnit(UnitTypes eUnit, int iX, int iY, UnitAITypes eUnitAI = NO_UNITAI, DirectionTypes eFacingDirection = NO_DIRECTION, bool bNoMove = false, bool bSetupGraphical = true, int iMapLayer = 0, int iNumGoodyHutsPopped = 0, ContractTypes eContract = NO_CONTRACT);
+	CvUnit* initUnit(UnitTypes eUnit, int iX, int iY, UnitAITypes eUnitAI = NO_UNITAI, DirectionTypes eFacingDirection = NO_DIRECTION, bool bNoMove = false, bool bSetupGraphical = true, int iMapLayer = 0, int iNumGoodyHutsPopped = 0, ContractTypes eContract = NO_CONTRACT, bool bHistoric = true);
 #else
 	CvUnit* initUnit(UnitTypes eUnit, int iX, int iY, UnitAITypes eUnitAI = NO_UNITAI, DirectionTypes eFacingDirection = NO_DIRECTION, bool bNoMove=false, bool bSetupGraphical=true, int iMapLayer = 0, int iNumGoodyHutsPopped = 0);
 #endif
-	CvUnit* initUnitWithNameOffset(UnitTypes eUnit, int nameOffset, int iX, int iY, UnitAITypes eUnitAI = NO_UNITAI, DirectionTypes eFacingDirection = NO_DIRECTION, bool bNoMove = false, bool bSetupGraphical = true, int iMapLayer = 0, int iNumGoodyHutsPopped = 0);
+	CvUnit* initUnitWithNameOffset(UnitTypes eUnit, int nameOffset, int iX, int iY, UnitAITypes eUnitAI = NO_UNITAI, DirectionTypes eFacingDirection = NO_DIRECTION, bool bNoMove = false, bool bSetupGraphical = true, int iMapLayer = 0, int iNumGoodyHutsPopped = 0, ContractTypes eContract = NO_CONTRACT, bool bHistoric = true);
 
 #if defined(MOD_BALANCE_CORE)
 	CvUnit* initNamedUnit(UnitTypes eUnit, const char* strKey, int iX, int iY, UnitAITypes eUnitAI = NO_UNITAI, DirectionTypes eFacingDirection = NO_DIRECTION, bool bNoMove = false, bool bSetupGraphical = true, int iMapLayer = 0, int iNumGoodyHutsPopped = 0);
@@ -665,6 +665,7 @@ public:
 	int GetHappinessFromPolicies() const;
 	int GetHappinessFromCities() const;
 	int GetHappinessFromBuildings() const;
+	void DoUpdateHappinessFromBuildings();
 
 	int GetExtraHappinessPerCity() const;
 	void ChangeExtraHappinessPerCity(int iChange);
@@ -677,6 +678,10 @@ public:
 	int GetHappinessFromResourceVariety() const;
 	int GetHappinessFromReligion();
 	int GetHappinessFromNaturalWonders() const;
+#if defined(MOD_BALANCE_CORE)
+	void SetNWOwned(FeatureTypes eFeature, bool bValue);
+	bool IsNWOwned(FeatureTypes eFeature) const;
+#endif
 
 	int GetHappinessFromLuxury(ResourceTypes eResource) const;
 	int GetExtraHappinessPerLuxury() const;
@@ -1419,6 +1424,9 @@ public:
 	void DoArmyDiversity();
 	int GetArmyDiversity() const;
 
+	void DoNavyDiversity();
+	int GetNavyDiversity() const;
+
 	void ChangeArchaeologicalDigTourism(int iChange);
 	int GetArchaeologicalDigTourism() const;
 
@@ -1872,6 +1880,9 @@ public:
 	int GetInvestmentModifier() const;
 	void changeInvestmentModifier(int iChange);
 	int GetScalingNationalPopulationRequrired(BuildingTypes eBuilding) const;
+
+	void ChangeNumCivsConstructingWonder(BuildingTypes eBuilding, int iValue);
+	int GetNumCivsConstructingWonder(BuildingTypes eBuilding) const;
 #endif
 	int getCapitalYieldRateModifier(YieldTypes eIndex) const;
 	void changeCapitalYieldRateModifier(YieldTypes eIndex, int iChange);
@@ -1950,6 +1961,9 @@ public:
 	const std::vector<ResourceTypes>& GetStrategicMonopolies() const { return m_vResourcesWStrategicMonopoly; }
 	const std::vector<ResourceTypes>& GetGlobalMonopolies() const { return m_vResourcesWGlobalMonopoly; }
 	int GetMonopolyPercent(ResourceTypes eResource) const;
+
+	int getCityYieldModFromMonopoly(YieldTypes eYield) const;
+	void changeCityYieldModFromMonopoly(YieldTypes eYield, int iValue);
 
 	int getResourceOverValue(ResourceTypes eIndex) const;
 	void changeResourceOverValue(ResourceTypes eIndex, int iChange);
@@ -2971,6 +2985,7 @@ protected:
 	FAutoVariable<int, CvPlayer> m_iJFDProsperity;
 	FAutoVariable<int, CvPlayer> m_iJFDCurrency;
 	FAutoVariable<int, CvPlayer> m_iUnitDiversity;
+	FAutoVariable<int, CvPlayer> m_iNavyUnitDiversity;
 	FAutoVariable<int, CvPlayer> m_iGoldenAgeTourism;
 	FAutoVariable<int, CvPlayer> m_iArchaeologicalDigTourism;
 	FAutoVariable<int, CvPlayer> m_iUpgradeCSTerritory;
@@ -3007,6 +3022,7 @@ protected:
 	FAutoVariable<std::vector<bool>, CvPlayer> m_abEventChoiceFired;
 	FAutoVariable<std::vector<bool>, CvPlayer> m_abEventFired;
 	FAutoVariable<int, CvPlayer> m_iPlayerEventCooldown;
+	FAutoVariable<std::vector<bool>, CvPlayer> m_abNWOwned;
 #endif
 	FAutoVariable<int, CvPlayer> m_iFreeSpecialist;
 	FAutoVariable<int, CvPlayer> m_iCultureBombTimer;
@@ -3123,6 +3139,8 @@ protected:
 	FAutoVariable<std::vector<int>, CvPlayer> m_aiGoldenAgeYieldMod;
 	FAutoVariable<std::vector<int>, CvPlayer> m_paiBuildingClassCulture;
 	FAutoVariable<std::vector<int>, CvPlayer> m_aiDomainFreeExperiencePerGreatWorkGlobal;
+	FAutoVariable<std::vector<int>, CvPlayer> m_paiNumCivsConstructingWonder;
+	FAutoVariable<std::vector<int>, CvPlayer> m_aiCityYieldModFromMonopoly;
 #endif
 
 	FAutoVariable<std::vector<int>, CvPlayer> m_aiCapitalYieldRateModifier;

@@ -2107,7 +2107,7 @@ int CvPlayerAI::ScoreCityForDiplomat(CvCity* pCity, CvUnit* pUnit)
 	//Return score if we can't embark and they aren't on our landmass.
 	if(pCity->getArea() != pUnit->plot()->getArea())
 	{
-		if(!CanCrossOcean())
+		if(!GET_TEAM(getTeam()).canEmbark())
 		{
 			return iScore;
 		}
@@ -2138,7 +2138,7 @@ int CvPlayerAI::ScoreCityForDiplomat(CvCity* pCity, CvUnit* pUnit)
 		return iScore;
 	}
 
-	iScore = 100;
+	iScore = 500;
 
 	// Subtract distance (XML value important here!)
 	int iDistance = (plotDistance(pUnit->getX(), pUnit->getY(), pCity->getX(), pCity->getY()) * GC.getINFLUENCE_TARGET_DISTANCE_WEIGHT_VALUE());
@@ -2158,7 +2158,7 @@ int CvPlayerAI::ScoreCityForDiplomat(CvCity* pCity, CvUnit* pUnit)
 	//Let's downplay far/distant minors without full embarkation.
 	else if((pCity->getArea() != pUnit->getArea()) && !GET_PLAYER(GetID()).CanCrossOcean())
 	{
-		iDistance *= 2;
+		iDistance *= 4;
 	}
 
 	//If this is way too far away, let's not penalize it too much.

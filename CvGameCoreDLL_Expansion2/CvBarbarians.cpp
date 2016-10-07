@@ -21,7 +21,7 @@ short* CvBarbarians::m_aiPlotBarbCityNumUnitsSpawned = NULL;
 //	---------------------------------------------------------------------------
 bool CvBarbarians::IsPlotValidForBarbCamp(CvPlot* pPlot)
 {
-	int iRange = 4;
+	int iRange = 3;
 	int iDY;
 
 	int iPlotX = pPlot->getX();
@@ -139,7 +139,7 @@ void CvBarbarians::DoCampActivationNotice(CvPlot* pPlot)
 	CvGame& kGame = GC.getGame();
 	// Default to between 8 and 12 turns per spawn
 #if defined(MOD_CORE_REDUCE_RANDOMNESS)
-	int iNumTurnsToSpawn = 6 + kGame.getSmallFakeRandNum(10,*pPlot);
+	int iNumTurnsToSpawn = 7 + kGame.getSmallFakeRandNum(10,*pPlot);
 #else
 	int iNumTurnsToSpawn = 8 + kGame.getJonRandNum(5, "Barb Spawn Rand call");
 #endif
@@ -198,7 +198,7 @@ void CvBarbarians::DoCityActivationNotice(CvPlot* pPlot)
 	// Default to between 8 and 12 turns per spawn
 	//bumped a bit - too many barbs gets annoying.
 #if defined(MOD_CORE_REDUCE_RANDOMNESS)
-	int iNumTurnsToSpawn = 6 + kGame.getSmallFakeRandNum(10,*pPlot);
+	int iNumTurnsToSpawn = 7 + kGame.getSmallFakeRandNum(10,*pPlot);
 #else
 	int iNumTurnsToSpawn = 15 + kGame.getJonRandNum(5, "Barb Spawn Rand call");
 #endif
@@ -695,7 +695,7 @@ void CvBarbarians::DoCamps()
 						}
 
 						// Add another Unit adjacent to the Camp to stir up some trouble (JON: Disabled for now 09/12/09)
-						//doSpawnBarbarianUnit(pLoopPlot);
+						DoSpawnBarbarianUnit(pLoopPlot, true, true);
 
 						iNumCampsToAdd--;
 					}
@@ -800,11 +800,6 @@ UnitTypes CvBarbarians::GetRandomBarbarianUnitType(CvArea* pArea, UnitAITypes eU
 
 			if(bValid)
 			{
-#if defined(MOD_CORE_REDUCE_RANDOMNESS)
-				iValue = 1 + (kGame.getSmallFakeRandNum(10, pArea->GetID()) * 100);
-#else
-				iValue = (1 + kGame.getJonRandNum(1000, "Barb Unit Selection"));
-#endif
 #if defined(MOD_BALANCE_CORE)
 				if (pPlot->getImprovementType() != NO_IMPROVEMENT && kUnit.GetRangedCombat() > 0)
 				{
@@ -812,13 +807,21 @@ UnitTypes CvBarbarians::GetRandomBarbarianUnitType(CvArea* pArea, UnitAITypes eU
 				}
 				if (pPlot->getImprovementType() == NO_IMPROVEMENT && kUnit.GetRange() == 1)
 				{
-					iValue += 100;
+					iValue += 5;
+				}
+				if (kUnit.GetRangedCombat() > 0)
+				{
+					iValue += kUnit.GetRangedCombat();
+				}
+				else
+				{
+					iValue += kUnit.GetCombat();
 				}
 #endif
 
 				if(kUnit.GetUnitAIType(eUnitAI))
 				{
-					iValue += 2;
+					iValue *= 2;
 				}
 
 				if(iValue > iBestValue)

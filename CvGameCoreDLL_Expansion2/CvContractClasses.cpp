@@ -310,39 +310,34 @@ CvPlayerContracts::~CvPlayerContracts()
 void CvPlayerContracts::Init(CvPlayer* pPlayer)
 {
 	m_pPlayer = pPlayer;
+
 	Reset();
 }
 
 /// Cleanup
 void CvPlayerContracts::Uninit()
 {
+	if (m_abActiveContract.size() > 0)
+	{
+		m_abActiveContract.clear();
+	}
 }
 
 /// Reset
 void CvPlayerContracts::Reset()
 {
-	VALIDATE_OBJECT
-	Uninit();
-
 	m_abActiveContract.clear();
-	m_abActiveContract.resize(GC.getNumContractInfos());
-	for(int iI = 0; iI < GC.getNumContractInfos(); iI++)
-	{
-		m_abActiveContract[iI] = false;
-	}
+	m_abActiveContract.resize(GC.getNumContractInfos(), false);
 }
 
 /// Serialization read
 void CvPlayerContracts::Read(FDataStream& kStream)
 {
-	VALIDATE_OBJECT
 	Reset();
 
 	// Version number to maintain backwards compatibility
 	uint uiVersion;
 	kStream >> uiVersion;
-	MOD_SERIALIZE_INIT_READ(kStream);
-
 	kStream >> m_abActiveContract;
 }
 
@@ -352,8 +347,6 @@ void CvPlayerContracts::Write(FDataStream& kStream)
 	// Current version number
 	uint uiVersion = 1;
 	kStream << uiVersion;
-	MOD_SERIALIZE_INIT_WRITE(kStream);
-
 	kStream << m_abActiveContract;
 }
 

@@ -429,7 +429,7 @@ bool CvAIOperation::RecruitUnit(CvUnit* pUnit)
 	bool bMustBeDeepWaterNaval = false;
 	if(IsNavalOperation())
 	{
-		bMustBeDeepWaterNaval = OperationalAIHelpers::NeedOceanMoves(m_eOwner, pMusterPlot, pTargetPlot);
+		bMustBeDeepWaterNaval = pThisArmy->NeedOceanMoves();
 
 		CvPlot* pAdjacentPlot = NULL;
 		if(pMusterPlot->isCoastalLand())
@@ -4117,32 +4117,6 @@ CvPlot* OperationalAIHelpers::FindEnemies(PlayerTypes ePlayer, PlayerTypes eEnem
 	}
 
 	return pBestPlot;	
-}
-
-
-bool OperationalAIHelpers::NeedOceanMoves(PlayerTypes ePlayer, CvPlot* pMusterPlot, CvPlot* pTargetPlot)
-{
-	SPathFinderUserData data( ePlayer, PT_GENERIC_SAME_AREA, NO_PLAYER );
-	data.iFlags = CvUnit::MOVEFLAG_APPROX_TARGET_RING1;
-	int iOceanLength = GC.GetStepFinder().GetPathLengthInPlots(pMusterPlot, pTargetPlot, data);
-
-	if (iOceanLength<0)
-		//oh, what now? this really shouldn't happen		
-		return false;
-
-	//now try without ocean for comparison
-	data.iFlags |= CvUnit::MOVEFLAG_NO_OCEAN;
-	int iNoOceanLength = GC.GetStepFinder().GetPathLengthInPlots(pMusterPlot, pTargetPlot, data);
-
-	//obvious
-	if (iNoOceanLength<0)
-		return true;
-
-	//let's define it this way
-	if (iNoOceanLength > iOceanLength*2)
-		return true;
-
-	return false;
 }
 
 /// Find our port operation operations against this enemy should leave from

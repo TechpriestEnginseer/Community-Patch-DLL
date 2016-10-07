@@ -3547,13 +3547,21 @@ void CvTacticalAI::PlotCampDefenseMoves()
 		CvUnit* currentDefender = pPlot->getBestDefender(BARBARIAN_PLAYER);
 		if (currentDefender)
 		{
-			if (TacticalAIHelpers::PerformRangedAttackWithoutMoving(currentDefender))
-				currentDefender->finishMoves();
-			else if (currentDefender->canFortify(pPlot))
-				currentDefender->PushMission(CvTypes::getMISSION_FORTIFY());
+			if (currentDefender->CanUpgradeRightNow(true))
+			{
+				currentDefender->DoUpgrade(true);
+				UnitProcessed(currentDefender->GetID());
+			}
 			else
-				currentDefender->PushMission(CvTypes::getMISSION_SKIP());
-			UnitProcessed(currentDefender->GetID());
+			{
+				if (TacticalAIHelpers::PerformRangedAttackWithoutMoving(currentDefender))
+					currentDefender->finishMoves();
+				else if (currentDefender->canFortify(pPlot))
+					currentDefender->PushMission(CvTypes::getMISSION_FORTIFY());
+				else
+					currentDefender->PushMission(CvTypes::getMISSION_SKIP());
+				UnitProcessed(currentDefender->GetID());
+			}
 
 			//that's a hack but that's the way it is
 			currentDefender->setTacticalMove( (TacticalAIMoveTypes)AI_TACTICAL_BARBARIAN_CAMP_DEFENSE );
@@ -7883,7 +7891,6 @@ void CvTacticalAI::ExecuteNavalBlockadeMove(CvPlot* pTarget)
 
 	if (pUnit)
 	{
-		pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pTarget->getX(), pTarget->getY(), CvUnit::MOVEFLAG_APPROX_TARGET_RING1);
 		if (pUnit->IsCanAttackRanged())
 		{
 			TacticalAIHelpers::PerformRangedAttackWithoutMoving(pUnit);
@@ -7902,7 +7909,33 @@ void CvTacticalAI::ExecuteNavalBlockadeMove(CvPlot* pTarget)
 				}
 				TacticalAIHelpers::PerformOpportunityAttack(pUnit, pEnemy->plot());
 			}
-		}	
+		}
+		if (pUnit->getMoves() > 0)
+		{
+			pUnit->PushMission(CvTypes::getMISSION_MOVE_TO(), pTarget->getX(), pTarget->getY(), CvUnit::MOVEFLAG_APPROX_TARGET_RING1);		
+		}
+		if (pUnit->getMoves() > 0)
+		{
+			if (pUnit->IsCanAttackRanged())
+			{
+				TacticalAIHelpers::PerformRangedAttackWithoutMoving(pUnit);
+			}
+			else
+			{
+				CvUnit *pEnemy = pUnit->plot()->GetAdjacentEnemyUnit(pUnit->getTeam(), pUnit->getDomainType());
+				if (pEnemy && TacticalAIHelpers::IsAttackNetPositive(pUnit, pEnemy->plot()))
+				{
+					if (GC.getLogging() && GC.getAILogging())
+					{
+						CvString strMsg;
+						strMsg.Format("In position for blockade %d, %d, but %s found an enemy unit to attack at X: %d, Y: %d",
+							pUnit->plot()->getX(), pUnit->plot()->getY(), pUnit->getName().GetCString(), pEnemy->plot()->getX(), pEnemy->plot()->getY());
+						LogTacticalMessage(strMsg);
+					}
+					TacticalAIHelpers::PerformOpportunityAttack(pUnit, pEnemy->plot());
+				}
+			}
+		}
 		pUnit->pillage();
 		pUnit->finishMoves();
 		UnitProcessed(m_CurrentMoveUnits[0].GetID());
@@ -8932,13 +8965,15 @@ bool CvTacticalAI::FindUnitsForThisMove(TacticalAIMoveTypes eMove, CvPlot* pTarg
 #if defined(MOD_BALANCE_CORE)
 			else if (eMove == (TacticalAIMoveTypes)m_CachedInfoTypes[eTACTICAL_POSTURE_SHORE_BOMBARDMENT])
 			{
-				if (pLoopUnit->getDomainType() == DOMAIN_SEA && pLoopUnit->IsCombatUnit())
+				if (pLoopUnit->getDomainType() == DOMAIN_SEA && pLoopUnit->IsCombatUnit() && pLoopUnit->plot()->getOwner() != pTarget->getOwner())
 				{
 					if (pLoopUnit->getUnitInfo().GetUnitAIType(UNITAI_ASSAULT_SEA))
+					{
 						bHighPriority = true;
-				}
+					}
 
-				bSuitableUnit = true;
+					bSuitableUnit = true;
+				}
 			}
 #endif
 
@@ -8999,6 +9034,14 @@ bool CvTacticalAI::FindUnitsWithinStrikingDistance(CvPlot* pTarget, bool bNoRang
 
 			// don't use non-combat units or ones that are out of moves
 			if (!bIncludeInactiveUnits && (!pLoopUnit->IsCanAttack() || !pLoopUnit->canMove()))
+				continue;
+
+			//Respect domain for melee units!
+			if ((pLoopUnit->getDomainType() == DOMAIN_SEA || pLoopUnit->getDomainType() == DOMAIN_LAND) && !bIsCityTarget && !pLoopUnit->IsCanAttackRanged() && pTarget->getDomain() != pLoopUnit->getDomainType())
+				continue;
+
+			//Embarked unit? Don't try to attack other embarked units!
+			if ((pLoopUnit->getDomainType() == DOMAIN_LAND) && pLoopUnit->isEmbarked() && pDefender && pDefender->isEmbarked())
 				continue;
 
 			if (!bIsCityTarget && pLoopUnit->IsCityAttackSupport())
